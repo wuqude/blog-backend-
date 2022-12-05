@@ -114,3 +114,55 @@ controller--->service接口-->serviceImpl->dao接口--->daoImll--》mapper-->db
 ```
 
 Controller层调用Service层的方法，Service层调用Dao层中的方法，其中调用的参数是使用Entity层进行传递的。
+
+这样使得业务逻辑更加清晰,写代码更加方便,形成了层次
+
+
+
+## 数据库设计的问题
+
+bigint和int的区别
+
+如果需要的范围比int大就用bigint
+
+varchar用于存储字符串格式
+
+![image-20221205095135075](allPicture/image-20221205095135075.png)
+
+在pojo当中bigint也就是`long`,varchar则对应着String类型
+
+### 浅谈@RequestMapping @ResponseBody 和 @RequestBody 注解的用法与区别
+
+#### 1.@RequestMapping
+
+国际惯例先介绍什么是@RequestMapping，@RequestMapping 是一个用来处理请求地址映射的注解，可用于类或方法上。用于类上，表示类中的所有响应请求的方法都是以该地址作为父路径；用于方法上，表示在类的父路径下追加方法上注解中的地址将会访问到该方法，**此处需注意@RequestMapping用在类上可以没用，但是用在方法上必须有**。
+
+
+
+Vo的意思是视图,当某种表当中有一些数据,但是我们并不需要其中的全部时,就用vo
+
+在这里,并不需要通过getRecord直接返回整张表的数据,因此通过vo取表需要的数据
+
+![image-20221205165819538](allPicture/image-20221205165819538.png)
+
+
+
+ArticleVo在这里返回以下内容
+
+需要的字段
+
+```java
+一篇文章需要id,因此返回id
+文章里面有标题因此,返回title
+ 除此之外还有总结 summary字段 评论总数conmmentCounts 观看次数viewCounts,权重weight,创建时间 createDate,作者author,文章体:body 以及标签tags 和分类列表catergorys
+```
+
+
+
+不需要的字段
+
+```java
+下面是没用返回的 author_id body_id categoryid
+```
+
+简单来说,vo就是去除掉不需要的字段,加入需要的字段

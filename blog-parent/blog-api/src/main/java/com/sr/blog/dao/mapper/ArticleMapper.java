@@ -1,4 +1,7 @@
 package com.sr.blog.dao.mapper;
 
-public class ArticleMapper {
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.sr.blog.dao.pojo.Article;
+
+public interface ArticleMapper extends BaseMapper<Article> {
 }
