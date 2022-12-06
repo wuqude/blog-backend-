@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 
 //代表这是一个配置类,在这里用于指定其他配置类的来源
 @Configuration
-@MapperScan("com.sr.blog.dao")
+@MapperScan("com.sr.blog.dao.mapper")
 //扫包，将此包下的接口生成代理实现类，并且注册到spring容器中
 public class MybatisPlusConfig {
     //分页插件
