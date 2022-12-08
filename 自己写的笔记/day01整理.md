@@ -298,4 +298,16 @@ Tag
 
 #### 5.3.1查询数据库
 
-这里通过Mybatisplus,所以不用自己写sql语句,这里是
+这里通过Mybatisplus,所以不用自己写sql语句,配置三个相关的Mapper
+
+Article
+
+![image-20221208173324513](allPicture/image-20221208173324513.png)
+
+SysUser
+
+![image-20221208173342354](allPicture/image-20221208173342354.png)
+
+Tag
+
+![image-20221208173356663](allPicture/image-20221208173356663.png)
