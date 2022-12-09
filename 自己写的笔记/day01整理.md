@@ -311,3 +311,33 @@ SysUser
 Tag
 
 ![image-20221208173356663](allPicture/image-20221208173356663.png)
+
+
+
+#### 5.3.2 Service层
+
+在完成了各个的mapper层之后,接下来的便是Service层,这里只先提供一个Article的查询,作为文章查询
+
+##### 5.3.2.1Vo类型
+
+在这里,新增一个Vo层,Vo层当中有一个Result,在这里规定了返回的类型是什么。
+
+![image-20221209100954793](allPicture/image-20221209100954793.png)
+
+有一个success,用于判断返回是否成功,code,用于规定返回的状态码,有一个msg是返回的信息,data规定返回的是数据,如果失败的话,则返回null
+
+除此之外,在这里,通过parmas规定返回的参数,以及每一页请求的参数
+
+![image-20221209102616422](allPicture/image-20221209102616422.png)
+
+规定文章的返回类型
+
+![image-20221209095436148](allPicture/image-20221209095436148.png)
+
+在这里Result是返回的类型参数,PageParma和pageParams则是页数。
+
+#### 5.3.2.2 Service的实现类impl
+
+接下来是Serivce的实现类,业务逻辑我们不放在Controller中去写,而是放在Service层中去写,并且实现
+
+![image-20221209110326244](allPicture/image-20221209110326244.png)
