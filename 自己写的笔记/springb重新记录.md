@@ -404,6 +404,190 @@ System.out.println("book dao save ..." + name);
 
 @PropertySource,这个注释通常和@Value结合一起使用,著名数据的出处
 
+#### 1.4.5 管理第三方bean的方法
+
+导入第三方bean的方式有两种.第一种是直接导入(通过引入@bean)第二种,就是通过@import这个注释,通过这个注释引入
+
+1. @bean引入需要配合@Configuration并且使用@ComponentScan来扫描整个包,
+
+```java
+@Configuration
+@ComponentScan("com.itheima.config")
+public class SpringConfig {
+}
+
+//JdbcConfig类要放入到com.itheima.config包下，需要被Spring的配置类扫描到即可
+@Configuration
+public class JdbcConfig {
+@Bean
+public DataSource dataSource(){
+DruidDataSource ds = new DruidDataSource();
+ds.setDriverClassName("com.mysql.jdbc.Driver");
+ds.setUrl("jdbc:mysql://localhost:3306/spring_db");
+ds.setUsername("root");
+ds.setPassword("root");
+return ds;
+}
+}
+```
+
+2. 使用@Import
+
+使用@improt的方法可以不用加@Configuration注解，但是必须在Spring配置类上使用@Import注解手动引入 需要加载的配置类
+
+步骤1:去除JdbcConfig类上的注解
+
+```java
+public class JdbcConfig {
+@Bean
+public DataSource dataSource(){
+DruidDataSource ds = new DruidDataSource();
+ds.setDriverClassName("com.mysql.jdbc.Driver");
+ds.setUrl("jdbc:mysql://localhost:3306/spring_db");
+ds.setUsername("root");
+ds.setPassword("root");
+return ds;
+}
+}
+```
+
+步骤2:在Spring配置类中引入
+
+```java
+@Configuration
+//@ComponentScan("com.itheima.config")
+@Import({JdbcConfig.class})
+public class SpringConfig {
+}
+```
+
+注解开发实现为第三方bean注入资源
+
+在使用@Bean创建bean对象的时候，如果方法在创建的过程中需要其他资源该怎么办?
+
+这些资源会有两大类，分别是简单数据类型 和引用数据类型。
+
+简单数据类型通过`@Value`这个注释,就可以完成,引用类型注入只需要为bean定义方法设置形参即可，容器会根据类型自动装配对象。
+
+```java
+@Bean
+public DataSource dataSource(BookDao bookDao){
+System.out.println(bookDao);
+DruidDataSource ds = new DruidDataSource();
+ds.setDriverClassName(driver);
+ds.setUrl(url);
+ds.setUsername(userName);
+ds.setPassword(password);
+return ds;
+}
+```
+
+
+
+
+
+在这里,研究一下,整合Mybatis和整合Junit,熟悉Spring整合第三方bean
+
+整合Mybatis分为以下的几个流程
+
+1. 配置相关pom.ximl的相关依赖
+
+```xml
+<dependencies>
+<dependency>
+<groupId>org.springframework</groupId>
+<artifactId>spring-context</artifactId>
+    <version>5.2.10.RELEASE</version>
+</dependency>
+<dependency>
+<groupId>com.alibaba</groupId>
+<artifactId>druid</artifactId>
+<version>1.1.16</version>
+</dependency>
+<dependency>
+<groupId>org.mybatis</groupId>
+<artifactId>mybatis</artifactId>
+<version>3.5.6</version>
+</dependency>
+<dependency>
+<groupId>mysql</groupId>
+<artifactId>mysql-connector-java</artifactId>
+<version>5.1.47</version>
+</dependency>
+</dependencies>
+```
+
+2. 根据表创建模型类(pojo),进行试验
+
+```java
+public class Account implements Serializable {
+private Integer id;
+private String name;
+private Double money;
+//setter...getter...toString...方法略
+}
+```
+
+3. 创建Dao接口(如果是Mybatis,就不用写具体的查询语句)
+
+```java
+public interface AccountDao {
+@Insert("insert into tbl_account(name,money)values(#{name},#{money})")
+void save(Account account);
+@Delete("delete from tbl_account where id = #{id} ")
+void delete(Integer id);
+@Update("update tbl_account set name = #{name} , money = #{money} where
+id = #{id} ")
+void update(Account account);
+@Select("select * from tbl_account")
+List<Account> findAll();
+@Select("select * from tbl_account where id = #{id} ")
+Account findById(Integer id);
+```
+
+4. 通过Service实现查询具体的数据
+
+```java
+public interface AccountService {
+void save(Account account);
+void delete(Integer id);
+void update(Account account);
+List<Account> findAll();
+Account findById(Integer id);
+}
+@Service
+public class AccountServiceImpl implements AccountService {
+@Autowired
+private AccountDao accountDao;
+public void save(Account account) {
+accountDao.save(account);
+}
+public void update(Account account){
+accountDao.update(account);
+}
+public void delete(Integer id) {
+accountDao.delete(id);
+}
+public Account findById(Integer id) {
+return accountDao.findById(id);
+}
+public List<Account> findAll() {
+return accountDao.findAll();
+}
+}
+```
+
+5. 添加具体的配置连接数据库
+
+```properties
+jdbc.driver=com.mysql.jdbc.Driver
+jdbc.url=jdbc:mysql://localhost:3306/spring_db?useSSL=false
+jdbc.username=root
+jdbc.password=root
+```
+
+
+
 
 
 ### MapperScan和@ComponentScan区别与使用方法
