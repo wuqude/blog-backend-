@@ -406,6 +406,8 @@ System.out.println("book dao save ..." + name);
 
 #### 1.4.5 管理第三方bean的方法
 
+**Spring的@Bean注解用于告诉方法，产生一个Bean对象，然后这个Bean对象交给Spring管理。Spring只会调用一次，将这个Bean对象放在自己的IOC容器中。**
+
 导入第三方bean的方式有两种.第一种是直接导入(通过引入@bean)第二种,就是通过@import这个注释,通过这个注释引入
 
 1. @bean引入需要配合@Configuration并且使用@ComponentScan来扫描整个包,
@@ -586,9 +588,269 @@ jdbc.username=root
 jdbc.password=root
 ```
 
+6. 在pom.xml当中添加Mybatis的配置文件
 
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+<!--读取外部properties配置文件-->
+<properties resource="jdbc.properties"></properties>
+<!--别名扫描的包路径-->
+<typeAliases>
+<package name="com.itheima.domain"/>
+</typeAliases>
+<!--数据源-->
+<environments default="mysql">
+<environment id="mysql">
+<transactionManager type="JDBC"></transactionManager>
+<dataSource type="POOLED">
+<property name="driver" value="${jdbc.driver}"></property>
+<property name="url" value="${jdbc.url}"></property>
+<property name="username" value="${jdbc.username}">
+</property>
+<property name="password" value="${jdbc.password}">
+</property>
+</dataSource>
+</environment>
+</environments>
+<!--映射文件扫描包路径-->
+<mappers>
+<package name="com.itheima.dao"></package>
+</mappers>
+</configuration>
+```
 
+7. 有一个入口程序
 
+```java
+public class App {
+public static void main(String[] args) throws IOException {
+// 1. 创建SqlSessionFactoryBuilder对象
+SqlSessionFactoryBuilder sqlSessionFactoryBuilder = new
+SqlSessionFactoryBuilder();
+// 2. 加载SqlMapConfig.xml配置文件
+InputStream inputStream =
+Resources.getResourceAsStream("SqlMapConfig.xml.bak");
+// 3. 创建SqlSessionFactory对象
+SqlSessionFactory sqlSessionFactory =
+sqlSessionFactoryBuilder.build(inputStream);
+// 4. 获取SqlSession
+SqlSession sqlSession = sqlSessionFactory.openSession();
+// 5. 执行SqlSession对象执行查询，获取结果User
+AccountDao accountDao = sqlSession.getMapper(AccountDao.class);
+Account ac = accountDao.findById(1);
+System.out.println(ac);
+// 6. 释放资源
+sqlSession.close();
+}
+}
+```
+
+在这里,可以总结一下还未通过注解管理时Mybatis的导入过程
+
+1、导入数据库,Mybatis是一个操数据库的库,需要提供表来操作
+
+2、在pom.xml导入jar包
+
+3、根据表创建模型(pojo类)
+
+4、创建Dao接口(dao,mapper层)
+
+5、创建Service接口层以及其实现类(通过service来实现增删改查)
+
+6、添加一个jdbc.properties的文件
+
+7、配置Mybatis的核心配置文件
+
+8、测试接口
+
+有八个步骤
+
+通过注解管理,有一些步骤可以省略
+
+Mybatis程序核心对象分析
+
+![image-20221228142117695](allPicture/image-20221228142117695.png)
+
+在这张图中可以得知,能够简化的是SqlSessionFactory部分,在这里可以通过bean取代
+
+接下来,还可以简化Myabtis的配置文件,在这里使用bean
+
+![image-20221228144557921](allPicture/image-20221228144557921.png)
+
+- 第一行读取外部properties配置文件，Spring有提供具体的解决方案@PropertySource ,需 要交给Spring
+- 第二行起别名包扫描，为SqlSessionFactory服务的，需要交给Spring
+- 第三行主要用于做连接池，Spring之前我们已经整合了Druid连接池，这块也需要交给 Spring
+- 前面三行一起都是为了创建SqlSession对象用的，那么用Spring管理SqlSession对象吗? 回忆下SqlSession是由SqlSessionFactory创建出来的，所以只需要将 SqlSessionFactory交给Spring管理即可。
+- 第四行是Mapper接口和映射文件[如果使用注解就没有该映射文件]，这个是在获取到 SqlSession以后执行具体操作的时候用，所以它和SqlSessionFactory创建的时机都不在 同一个时间，可能需要单独管理。
+
+通过Spring整合Mybatis
+
+整合的过程包括两件事情Sprng要管理Mybatis中的SqlSessionFactory
+
+Spring要管理Mapper接口的扫描
+
+1、在pom当中整合依赖
+
+```xml
+<dependency>
+<!--Spring操作数据库需要该jar包-->
+<groupId>org.springframework</groupId>
+<artifactId>spring-jdbc</artifactId>
+<version>5.2.10.RELEASE</version>
+</dependency>
+<dependency>
+<!--
+Spring与Mybatis整合的jar包
+这个jar包mybatis在前面，是Mybatis提供的
+-->
+<groupId>org.mybatis</groupId>
+<artifactId>mybatis-spring</artifactId>
+<version>1.3.0</version>
+</dependency>
+
+```
+
+2.:创建Spring的主配置类
+
+```java
+//配置类注解
+@Configuration
+//包扫描，主要扫描的是项目中的AccountServiceImpl类
+@ComponentScan("com.itheima")
+public class SpringConfig {
+}
+```
+
+3.:创建数据源的配置类
+
+在配置类中完成数据源的创建
+
+```java
+public class JdbcConfig {
+@Value("${jdbc.driver}")
+private String driver;
+@Value("${jdbc.url}")
+private String url;
+@Value("${jdbc.username}")
+private String userName;
+@Value("${jdbc.password}")
+private String password;
+@Bean
+public DataSource dataSource(){
+DruidDataSource ds = new DruidDataSource();
+ds.setDriverClassName(driver);
+ds.setUrl(url);
+ds.setUsername(userName);
+ds.setPassword(password);
+return ds;
+}
+}
+```
+
+4.读properties并引入数据源配置类
+
+```java
+@Configuration
+@ComponentScan("com.itheima")
+@PropertySource("classpath:jdbc.properties")
+@Import(JdbcConfig.class)
+public class SpringConfig {
+}
+```
+
+5 创建Mybatis配置类并配置SqlSessionFactory
+
+```java
+public class MybatisConfig {
+//定义bean，SqlSessionFactoryBean，用于产生SqlSessionFactory对象
+@Bean
+public SqlSessionFactoryBean sqlSessionFactory(DataSource dataSource){
+SqlSessionFactoryBean ssfb = new SqlSessionFactoryBean();
+//设置模型类的别名扫描
+ssfb.setTypeAliasesPackage("com.itheima.domain");
+//设置数据源
+ssfb.setDataSource(dataSource);
+return ssfb;
+}
+//定义bean，返回MapperScannerConfigurer对象
+@Bean
+public MapperScannerConfigurer mapperScannerConfigurer(){
+MapperScannerConfigurer msc = new MapperScannerConfigurer();
+msc.setBasePackage("com.itheima.dao");
+return msc;
+}
+}
+```
+
+说明:
+
+- 使用SqlSessionFactoryBean封装SqlSessionFactory需要的环境信息
+
+![image-20221228160232726](allPicture/image-20221228160232726.png)
+
+- SqlSessionFactoryBean是前面我们讲解FactoryBean的一个子类，在该类中将 SqlSessionFactory的创建进行了封装，简化对象的创建，我们只需要将其需要的内容设置 即可。
+- 方法中有一个参数为dataSource,当前Spring容器中已经创建了Druid数据源，类型刚好是 DataSource类型，此时在初始化SqlSessionFactoryBean这个对象的时候，发现需要使用 DataSource对象，而容器中刚好有这么一个对象，就自动加载了DruidDataSource对象。
+- 使用MapperScannerConfigurer加载Dao接口，创建代理对象保存到IOC容器中
+
+![image-20221228160933197](allPicture/image-20221228160933197.png)
+
+- 这个MapperScannerConfigurer对象也是MyBatis提供的专用于整合的jar包中的类，用来 处理原始配置文件中的mappers相关配置，加载数据层的Mapper接口类
+- MapperScannerConfigurer有一个核心属性basePackage，就是用来设置所扫描的包路径
+
+6:主配置类中引入Mybatis配置类
+
+```java
+@Configuration
+@ComponentScan("com.itheima")
+@PropertySource("classpath:jdbc.properties")
+@Import({JdbcConfig.class,MybatisConfig.class})
+public class SpringConfig {
+}
+```
+
+7.:编写运行类
+
+在运行类中，从IOC容器中获取Service对象，调用方法获取结果
+
+```java
+public class App2 {
+public static void main(String[] args) {
+ApplicationContext ctx = new
+AnnotationConfigApplicationContext(SpringConfig.class);
+AccountService accountService = ctx.getBean(AccountService.class);
+Account ac = accountService.findById(1);
+System.out.println(ac);
+}
+}
+```
+
+步骤8:运行程序
+
+![image-20221228162113935](allPicture/image-20221228162113935.png)
+
+在这里,对用到的注释进行规律
+
+1. 
+
+@Configuration,这个注解用于配置这是一个配置类
+
+@ComponentScan,这个注释用来标注包扫描的地方
+
+SpringConfig,是一个扫描包
+
+2. 
+
+接下来是配置数据源,在这里分为两种一种是简单类型,一种是复杂类型
+
+简单类型通过@value,复杂的类型,则通过指定设置参数来执行
+
+@bean
+
+通俗来讲,@bean这个注释的意思是,通过@这个注释,可以将其实例化,这样**需要初始化的实例，方法，内容时都可以使用**
 
 ### MapperScan和@ComponentScan区别与使用方法
 
