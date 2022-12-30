@@ -834,7 +834,7 @@ System.out.println(ac);
 
 在这里,对用到的注释进行规律
 
-1. 
+1. 创建Spring的主配置类
 
 @Configuration,这个注解用于配置这是一个配置类
 
@@ -842,7 +842,7 @@ System.out.println(ac);
 
 SpringConfig,是一个扫描包
 
-2. 
+2. 创建数据源的配置类
 
 接下来是配置数据源,在这里分为两种一种是简单类型,一种是复杂类型
 
@@ -851,6 +851,16 @@ SpringConfig,是一个扫描包
 @bean
 
 通俗来讲,@bean这个注释的意思是,通过@这个注释,可以将其实例化,这样**需要初始化的实例，方法，内容时都可以使用**
+
+3. 在主配置当中读properties,并引入数据类配置
+
+在这里,多了两个注释,一个是@PropertySource,另一个是@Import,作用分别是
+
+@PropertySource的作用是加载指定的配置文件
+
+@Import,这个配置是用来导入一些配置类,在这里,是用来导入JdbcConfig
+
+4.Mybatis配置类,并且SqlSessionFactory
 
 ### MapperScan和@ComponentScan区别与使用方法
 
